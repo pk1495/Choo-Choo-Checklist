@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Cozy Train Checklist</title>
+<title>Babby Cozy Express</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800&display=swap">
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
@@ -134,6 +134,32 @@ button{font-family:inherit}
 .stage[data-exam="on"] .tod{background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(255,80,30,.22))}
 .stage[data-exam="on"][data-tod="night"] .tod{background:linear-gradient(rgba(40,30,120,.55),rgba(80,40,120,.45)),radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(255,80,30,.3))}
 @media (prefers-reduced-motion:reduce){.hoot,.bob2,.hopoff{animation:none}}
+.skyfx{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none}
+.stage[data-tod="sunrise"] .tod{background:linear-gradient(rgba(255,200,140,.32),rgba(255,140,190,.2))}
+.spin-slow{animation:spin 40s linear infinite}
+.twinkle2{animation:tw2 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes tw2{0%,100%{opacity:.45}50%{opacity:1}}
+.shoot{animation:shoot 9s ease-in infinite;opacity:0}
+@keyframes shoot{0%,86%{opacity:0;transform:translate(900px,40px)}88%{opacity:1}100%{opacity:0;transform:translate(560px,150px)}}
+.firefly{animation:fireflyx ease-in-out infinite;filter:drop-shadow(0 0 5px #fff59a)}
+@keyframes fireflyx{0%,100%{transform:translate(0,0);opacity:.3}25%{transform:translate(18px,-14px);opacity:1}50%{transform:translate(-8px,-26px);opacity:.5}75%{transform:translate(-20px,-8px);opacity:1}}
+.fly{animation:flyx linear infinite}
+@keyframes flyx{from{transform:translateX(-80px)}to{transform:translateX(1300px)}}
+.flap{animation:flap .5s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+@keyframes flap{from{transform:scaleY(1)}to{transform:scaleY(-.5)}}
+.boing{animation:boing .5s cubic-bezier(.3,1.6,.5,1);transform-box:fill-box;transform-origin:50% 100%}
+@keyframes boing{0%{transform:scale(1,1)}25%{transform:scale(1.18,.8)}55%{transform:scale(.9,1.16)}100%{transform:scale(1,1)}}
+.floatup{animation:floatup 1.1s ease-out forwards}
+@keyframes floatup{0%{opacity:0;transform:translateY(8px) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translateY(-34px) scale(1.2)}}
+.ripple{animation:ripple 3.2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes ripple{0%{transform:scale(.4);opacity:.7}100%{transform:scale(1.5);opacity:0}}
+.pulse{animation:pulse 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.bubble{position:absolute;z-index:45;transform:translate(-50%,-135%);background:#fffafc;color:#5b3a4a;border:2.5px solid var(--line);border-radius:18px;padding:7px 14px;font:800 14px var(--font-body);
+  box-shadow:0 6px 16px rgba(0,0,0,.18);animation:pop .25s;pointer-events:none;white-space:nowrap}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-9px;width:14px;height:14px;background:#fffafc;border-right:2.5px solid var(--line);border-bottom:2.5px solid var(--line);transform:translateX(-50%) rotate(45deg)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-weight:800;font-size:12px;padding:3px 9px;border-radius:99px;background:var(--card-2);border:1.5px solid var(--line);color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.spin-slow,.twinkle2,.shoot,.firefly,.fly,.flap,.boing,.floatup,.ripple,.pulse{animation:none}}
 </style>
 </head>
 <body>
@@ -221,6 +247,27 @@ const fullyDone = s => s.tasks.length > 0 && s.tasks.every(t => t.done);
 /* whole days from today to a YYYY-MM-DD date (negative once it has passed) */
 const daysUntil = ds => { if (!ds) return null; const [y, m, d] = ds.split("-").map(Number); const t = new Date(y, m - 1, d), n = new Date(); n.setHours(0, 0, 0, 0); return Math.round((t - n) / 86400000); };
 const isAcademic = s => !!s.academic;
+/* ---------- class exams ---------- */
+const examAt = e => { const [y, m, d] = e.date.split("-").map(Number); const [hh, mm] = (e.time || "23:59").split(":").map(Number); return new Date(y, m - 1, d, hh, mm); };
+const sortExams = xs => [...xs].filter(e => e.date).sort((a, b) => examAt(a) - examAt(b));
+function loadExams() {
+  let xs = store.get("cozy-train-exams", null);
+  if (!xs) {   /* migrate the single date from the first version */
+    const old = store.get("cozy-train-examdate", "");
+    xs = old ? [{ id: uid(), name: "Final exam", date: old, time: "", color: COLORS[0] }] : [];
+  }
+  return xs;
+}
+const countdownLabel = e => {
+  const d = daysUntil(e.date);
+  if (d === null) return ["", "neutral"];
+  if (d < 0 || (d === 0 && examAt(e) < new Date() && e.time)) return ["Done", "done"];
+  if (d === 0) return ["Today", "hot"];
+  if (d === 1) return ["Tomorrow", "hot"];
+  return [`in ${d} days`, d <= 3 ? "hot" : d <= 7 ? "warm" : "cool"];
+};
+/* focus stats for today */
+const loadFocus = () => { const f = store.get("cozy-train-focus", null); return f && f.date === dayStr() ? f : { date: dayStr(), sessions: 0 }; };
 
 /* first run: defaults + core stations. Older saves: add the core stations once, keep everything else.
    Also does the once-a-day housekeeping: breaks missed streaks and resets "repeat daily" stations. */
@@ -256,7 +303,9 @@ function loadStations() {
 
 /* ---------- sound (WebAudio, starts after first click) ---------- */
 let actx = null;
+let MUTED = false;   /* mirrored from the app so scenery pokes respect the mute button */
 function blip(freqs, dur = 0.12, type = "triangle", vol = 0.12) {
+  if (MUTED) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === "suspended") actx.resume();
@@ -279,6 +328,9 @@ const sfx = {
   toot: () => blip([262, 330], 0.22, "square", 0.05),
   hoot: () => { blip([196, 262], 0.35, "square", 0.07); setTimeout(() => blip([196, 262], 0.35, "square", 0.07), 450); setTimeout(() => blip([262, 330, 392], 0.4, "square", 0.07), 950); },
   board: () => blip([523, 784, 1047], 0.09),
+  pop: () => blip([700, 920], 0.06, "sine", 0.09),
+  plip: () => blip([520, 760, 640], 0.06, "sine", 0.09),
+  tada: () => blip([523, 659, 784, 1047], 0.07, "triangle", 0.1),
 };
 
 /* ---------- geometry helpers ---------- */
@@ -295,6 +347,18 @@ function Cloud({ y, s, d, delay, o, fill }) {
         <ellipse cx="60" cy="34" rx="64" ry="22" /><circle cx="40" cy="20" r="22" />
         <circle cx="84" cy="12" r="26" /><circle cx="116" cy="28" r="18" />
       </g>
+    </g>
+  );
+}
+/* tap-able scenery: squash, blip and a floating heart */
+const HEARTS = ["♥", "✦", "♡", "★"];
+function Poke({ at, snd = "pop", children }) {
+  const [k, setK] = useState(0);
+  const click = e => { e.stopPropagation(); setK(x => x + 1); if (sfx[snd]) sfx[snd](); };
+  return (
+    <g style={{ cursor: "pointer" }} onClick={click}>
+      <g key={"b" + k} className={k ? "boing" : ""}>{children}</g>
+      {k > 0 && <text key={"h" + k} className="floatup" x={at[0]} y={at[1] - 44} textAnchor="middle" fontSize="18" fill="#ff7aa8" stroke="#fff" strokeWidth="1" style={{ pointerEvents: "none" }}>{HEARTS[k % 4]}</text>}
     </g>
   );
 }
@@ -373,14 +437,17 @@ function Scenery({ th }) {
       <path d={ISLAND_D} fill={th.grass} />
       <path d={ISLAND_D} fill="none" stroke={th.grassHi} strokeWidth="10" opacity=".8" />
       <path d="M 150 300 C 200 190, 360 170, 520 190 C 660 205, 800 170, 960 190 C 1070 205, 1090 300, 1060 380" fill="none" stroke={th.grassHi} strokeWidth="26" opacity=".4" strokeLinecap="round" />
-      <ellipse cx="185" cy="482" rx="58" ry="26" fill={th.shore} /><ellipse cx="185" cy="480" rx="50" ry="21" fill={th.pond} />
-      <ellipse cx="170" cy="476" rx="16" ry="5" fill="#fff" opacity=".4" />
-      {th.snowCap ? <ellipse cx="205" cy="486" rx="9" ry="3.5" fill="#fff" /> : <ellipse cx="205" cy="486" rx="7" ry="4" fill="#7fd8a0" />}
-      {[[560,420],[640,400],[700,345],[470,385]].map(([x, y], i) => <Flower key={i} x={x} y={y} c={th.snowCap ? "#cfe6ff" : i % 2 ? "#fff" : "#ffd1e3"} />)}
-      <Castle x={640} y={215} roof={th.roof} />
-      <Mushroom x={300} y={215} cap={th.cap[0]} /><Mushroom x={1030} y={520} s={1.2} cap={th.cap[1]} /><Mushroom x={210} y={560} s={.8} cap={th.cap[2]} />
+      <Poke at={[185, 482]} snd="plip">
+        <ellipse cx="185" cy="482" rx="58" ry="26" fill={th.shore} /><ellipse cx="185" cy="480" rx="50" ry="21" fill={th.pond} />
+        <ellipse cx="170" cy="476" rx="16" ry="5" fill="#fff" opacity=".4" />
+        {th.snowCap ? <ellipse cx="205" cy="486" rx="9" ry="3.5" fill="#fff" /> : <ellipse cx="205" cy="486" rx="7" ry="4" fill="#7fd8a0" />}
+        <ellipse className="ripple" cx="185" cy="480" rx="20" ry="8" fill="none" stroke="#fff" strokeWidth="2" opacity=".6" />
+      </Poke>
+      {[[560,420],[640,400],[700,345],[470,385]].map(([x, y], i) => <Poke key={i} at={[x, y]}><Flower x={x} y={y} c={th.snowCap ? "#cfe6ff" : i % 2 ? "#fff" : "#ffd1e3"} /></Poke>)}
+      <Poke at={[640, 215]} snd="tada"><Castle x={640} y={215} roof={th.roof} /></Poke>
+      <Poke at={[300, 215]}><Mushroom x={300} y={215} cap={th.cap[0]} /></Poke><Poke at={[1030, 520]}><Mushroom x={1030} y={520} s={1.2} cap={th.cap[1]} /></Poke><Poke at={[210, 560]}><Mushroom x={210} y={560} s={.8} cap={th.cap[2]} /></Poke>
       {[[130,300,1],[170,235,.9],[1040,250,1],[1085,330,.9],[880,585,1],[330,585,.9],[130,400,.8],[1000,180,.8]].map(([x, y, s], i) =>
-        <Tree key={i} x={x} y={y} s={s} delay={i * .4} c={th.trees[i % 3]} snow={th.snowCap} />)}
+        <Poke key={i} at={[x, y]}><Tree x={x} y={y} s={s} delay={i * .4} c={th.trees[i % 3]} snow={th.snowCap} /></Poke>)}
     </g>
   );
 }
@@ -455,7 +522,7 @@ function Body({ kind, color, icon }) {
     </>
   );
 }
-function Station({ st, x, y, onOpen, active, dim }) {
+function Station({ st, x, y, onOpen, active, dim, badges = [] }) {
   const total = st.tasks.length, done = st.tasks.filter(t => t.done).length;
   const complete = total > 0 && done === total;
   const label = st.name.length > 22 ? st.name.slice(0, 21) + "…" : st.name;
@@ -477,6 +544,14 @@ function Station({ st, x, y, onOpen, active, dim }) {
         <circle r="11" fill={complete ? "#7fd8b0" : st.color} stroke="#fff" strokeWidth="2.5" />
         <text textAnchor="middle" y="4" fontSize="10.5" fontWeight="800" fill="#fff" style={{ fontFamily: "var(--font-display)" }}>{complete ? "✓" : `${done}/${total}`}</text>
       </g>
+      {badges.map((bd, i) => (
+        <g key={bd.ic} transform={`translate(${w / 2 + 16 + i * 27} ${-66 + lift})`}>
+          <title>{bd.tip}</title>
+          <circle r="12" fill={bd.color} stroke="#fff" strokeWidth="2.5" className={bd.pulse ? "pulse" : ""} />
+          <g transform="translate(-6.5 -6.5)" style={{ color: "#fff" }}><Icon name={bd.ic} size={13} strokeWidth={3} /></g>
+          {bd.n > 0 && <g transform="translate(9 9)"><circle r="7" fill="#fff" /><text textAnchor="middle" y="3.5" fontSize="9" fontWeight="800" fill={bd.color} style={{ fontFamily: "var(--font-display)" }}>{bd.n}</text></g>}
+        </g>
+      ))}
       {complete && (
         <g className="twinkle" transform={`translate(0 ${-92 + lift})`}>
           <path d="M0 -14 L4 -4 L14 -4 L6 3 L9 13 L0 7 L-9 13 L-6 3 L-14 -4 L-4 -4Z" fill="#ffcf5c" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
@@ -489,9 +564,10 @@ function Station({ st, x, y, onOpen, active, dim }) {
 }
 
 /* ---------- train ---------- */
-function Engine({ refEl, paused, steam }) {
+function Engine({ refEl, paused, steam, onClick }) {
   return (
-    <g ref={refEl} className={paused ? "paused" : ""}>
+    <g ref={refEl} className={paused ? "paused" : ""} onClick={onClick} style={{ pointerEvents: "all", cursor: "pointer" }}>
+      <title>Toot the whistle</title>
       <g className="chug">
         <g transform="translate(0 -22)">
           <g transform="translate(-14 -22)">
@@ -517,7 +593,7 @@ function Engine({ refEl, paused, steam }) {
     </g>
   );
 }
-function Car({ refEl, color, paused, riders = [] }) {
+function Car({ refEl, color, paused, riders = [], onRider }) {
   return (
     <g ref={refEl} className={paused ? "paused" : ""}>
       <g className="chug">
@@ -525,7 +601,7 @@ function Car({ refEl, color, paused, riders = [] }) {
         <rect x="-18" y="-30" width="14" height="12" rx="4" fill="#fffafc" /><rect x="4" y="-30" width="14" height="12" rx="4" fill="#fffafc" />
         <path d="M-26 -8 H26" stroke="rgba(0,0,0,.1)" strokeWidth="3" />
         {riders.map(r => (
-          <g key={r.key} transform={`translate(${r.seat === 0 ? -11 : 11} -44)`}>
+          <g key={r.key} transform={`translate(${r.seat === 0 ? -11 : 11} -44)`} style={{ pointerEvents: "all", cursor: "pointer" }} onClick={e => { e.stopPropagation(); onRider && onRider(r, e.currentTarget); }}>
             <g className={r.hop ? "hopoff" : "bob2"} style={{ animationDelay: r.seat * .4 + "s" }}>
               <circle r="9" fill={r.bg} stroke="#fff" strokeWidth="2" />
               <text textAnchor="middle" y="4.5" fontSize="12">{r.emoji}</text>
@@ -536,6 +612,56 @@ function Car({ refEl, color, paused, riders = [] }) {
       </g>
       {[-14, 14].map(x => <g key={x} transform={`translate(${x} -6)`}><g className="wheel"><circle r="7" fill="#5b3a4a" /><circle r="2.5" fill="#ffcf5c" /><rect x="-1" y="-7" width="2" height="14" fill="#ffcf5c" /></g></g>)}
     </g>
+  );
+}
+
+/* ---------- sky symbols: sun / moon, stars, birds, fireflies (sits above the time-of-day tint) ---------- */
+const TODS = [["sunrise", "Sunrise", "Sunrise"], ["day", "Sun", "Day"], ["sunset", "Sunset", "Sunset"], ["night", "Moon", "Night"]];
+const STARS = [[60,40],[130,95],[220,30],[300,80],[390,35],[470,70],[560,25],[700,60],[790,30],[880,78],[950,28],[1150,40],[1170,120],[40,150],[1120,200],[620,100]];
+const FLIES = [[240,300],[330,430],[520,250],[700,300],[860,400],[980,300],[420,560],[760,560],[150,420],[1040,440]];
+function SkyFx({ tod, onCycle }) {
+  const night = tod === "night";
+  const pos = { sunrise: [170, 108], day: [1050, 62], sunset: [1085, 120], night: [1050, 66] }[tod];
+  const sunFill = { sunrise: "#ffb36b", day: "#ffd95c", sunset: "#ff8a5c", night: "#ffd95c" }[tod];
+  const nextLabel = TODS[(TODS.findIndex(t => t[0] === tod) + 1) % TODS.length][2];
+  return (
+    <svg className="skyfx" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible" }} aria-hidden="false">
+      <defs>
+        <radialGradient id="sunGlow"><stop offset="0" stopColor="#fff7c2" stopOpacity=".95" /><stop offset="1" stopColor="#fff7c2" stopOpacity="0" /></radialGradient>
+        <mask id="moonMask"><rect x="-40" y="-40" width="80" height="80" fill="#fff" /><circle cx="11" cy="-7" r="22" fill="#000" /></mask>
+      </defs>
+      {STARS.map(([x, y], i) => (
+        <g key={i} transform={`translate(${x} ${y})`} style={{ opacity: night ? 1 : 0, transition: "opacity 1s" }}>
+          <path className="twinkle2" style={{ animationDelay: (i % 5) * .5 + "s" }} d="M0 -6 L1.6 -1.6 L6 0 L1.6 1.6 L0 6 L-1.6 1.6 L-6 0 L-1.6 -1.6Z" fill="#fff8d0" transform={`scale(${0.7 + (i % 3) * .25})`} />
+        </g>
+      ))}
+      {night && <g className="shoot"><line x1="0" y1="0" x2="-60" y2="-24" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".9" /><circle r="3.5" fill="#fff" /></g>}
+      {FLIES.map(([x, y], i) => (
+        <g key={i} transform={`translate(${x} ${y})`} style={{ opacity: night ? 1 : 0, transition: "opacity 1s", pointerEvents: "none" }}>
+          <circle className="firefly" style={{ animationDelay: i * .6 + "s", animationDuration: 5 + (i % 4) + "s" }} r="3" fill="#fff59a" />
+        </g>
+      ))}
+      {!night && tod !== "sunset" && [0, 1, 2].map(i => (
+        <g key={i} className="fly" style={{ animationDuration: 38 + i * 11 + "s", animationDelay: -i * 13 + "s" }}>
+          <g transform={`translate(0 ${70 + i * 34})`}><path className="flap" style={{ animationDelay: i * .15 + "s" }} d="M-9 0 Q-4 -7 0 0 Q4 -7 9 0" fill="none" stroke="#5b3a4a" strokeWidth="2.2" strokeLinecap="round" /></g>
+        </g>
+      ))}
+      <g style={{ transform: `translate(${pos[0]}px, ${pos[1]}px)`, transition: "transform 1.2s cubic-bezier(.4,0,.2,1)" }}>
+        <circle r="120" fill="url(#sunGlow)" style={{ opacity: night ? 0 : tod === "day" ? .55 : .9, transition: "opacity 1s", pointerEvents: "none" }} />
+        <g style={{ opacity: night ? 0 : 1, transition: "opacity .8s" }}>
+          <g className="spin-slow">{Array.from({ length: 12 }, (_, i) => <line key={i} x1="0" y1="-36" x2="0" y2="-45" stroke={sunFill} strokeWidth="5" strokeLinecap="round" transform={`rotate(${i * 30})`} />)}</g>
+          <circle r="28" fill={sunFill} stroke="#fff" strokeWidth="3" style={{ transition: "fill 1s" }} />
+          <circle cx="-9" cy="-3" r="2.6" fill="#5b3a4a" /><circle cx="9" cy="-3" r="2.6" fill="#5b3a4a" /><path d="M-7 7 Q0 14 7 7" stroke="#5b3a4a" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+          <circle cx="-16" cy="5" r="4" fill="#ff8fb8" opacity=".55" /><circle cx="16" cy="5" r="4" fill="#ff8fb8" opacity=".55" />
+        </g>
+        <g style={{ opacity: night ? 1 : 0, transition: "opacity .8s" }}>
+          <g mask="url(#moonMask)"><circle r="30" fill="#fff4c4" stroke="#fff" strokeWidth="2" /></g>
+          <path d="M-14 -2 Q-11 1 -8 -2" stroke="#8a7a5a" strokeWidth="2" fill="none" strokeLinecap="round" /><circle cx="-12" cy="9" r="3" fill="#ff8fb8" opacity=".5" />
+        </g>
+        <circle r="46" fill="transparent" style={{ pointerEvents: "all", cursor: "pointer" }} tabIndex={0} role="button" aria-label={`Time of day is ${tod}. Switch to ${nextLabel}`}
+          onClick={onCycle} onKeyDown={e => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onCycle())}><title>{`Tap for ${nextLabel}`}</title></circle>
+      </g>
+    </svg>
   );
 }
 /* ---------- confetti ---------- */
@@ -551,7 +677,7 @@ function Confetti({ bursts }) {
 }
 
 /* ---------- checklist modal ---------- */
-function ChecklistModal({ st, onClose, onToggle, onAdd, onDelete, onRemoveStation, onRename, timer, timerStation, onStartTimer, onStopTimer, onFlag }) {
+function ChecklistModal({ st, onClose, onToggle, onAdd, onDelete, onRemoveStation, onRename, timer, timerStation, onStartTimer, onStopTimer, onFlag, focus }) {
   const [text, setText] = useState("");
   const [due, setDue] = useState("");
   const today = todayStr();
@@ -579,7 +705,7 @@ function ChecklistModal({ st, onClose, onToggle, onAdd, onDelete, onRemoveStatio
           </div>
           <div className="progress mt-3" style={{ background: "rgba(255,255,255,.35)", borderColor: "rgba(255,255,255,.6)" }}><i style={{ width: pct + "%" }} /></div>
         </div>
-        <BoilerPanel st={st} timer={timer} timerStation={timerStation} onStart={onStartTimer} onStop={onStopTimer} />
+        <BoilerPanel st={st} timer={timer} timerStation={timerStation} onStart={onStartTimer} onStop={onStopTimer} focus={focus} />
         <div className="p-4 pt-2 flex flex-col gap-2 overflow-y-auto" style={{ minHeight: 120 }}>
           {total === 0 && <p className="text-center py-6 font-bold" style={{ color: "var(--ink-soft)" }}>This stop is quiet. Add the first task below.</p>}
           {st.tasks.map(t => (
@@ -665,7 +791,7 @@ function AddStationModal({ onClose, onCreate }) {
 function useTick(ms) { const [, set] = useState(0); useEffect(() => { const i = setInterval(() => set(x => x + 1), ms); return () => clearInterval(i); }, [ms]); }
 
 /* ---------- boiler focus timer (inside the station modal) ---------- */
-function BoilerPanel({ st, timer, timerStation, onStart, onStop }) {
+function BoilerPanel({ st, timer, timerStation, onStart, onStop, focus }) {
   useTick(500);
   const mine = timer && timer.sid === st.id;
   const left = timer ? Math.max(0, Math.ceil((timer.endsAt - Date.now()) / 1000)) : 0;
@@ -681,7 +807,7 @@ function BoilerPanel({ st, timer, timerStation, onStart, onStop }) {
           <div className="text-sm font-extrabold" style={{ color: "var(--ink-soft)" }}>The boiler is fired up for {timerStation ? timerStation.name : "another stop"}.</div>
         ) : (<>
           <div className="font-extrabold">Boiler focus timer</div>
-          <div className="text-sm font-bold" style={{ color: "var(--ink-soft)" }}>25 minutes of steady focus{st.academic ? ", perfect for schoolwork" : ""}.</div>
+          <div className="text-sm font-bold" style={{ color: "var(--ink-soft)" }}>25 minutes of steady focus{st.academic ? ", perfect for schoolwork" : ""}.{focus && focus.sessions > 0 ? ` Today: ${focus.sessions} ${focus.sessions === 1 ? "session" : "sessions"}, ${focus.sessions * 25} min.` : ""}</div>
         </>)}
       </div>
       {mine
@@ -767,29 +893,110 @@ function ConductorLog({ open, onClose, items, onAdd, onToggle, onDelete }) {
   );
 }
 
-/* ---------- ticket counter: days to the final exam ---------- */
-function TicketCounter({ date, onChange }) {
+/* ---------- ticket counter: opens the Finals Board ---------- */
+function TicketCounter({ exams, onOpen }) {
   useTick(30000);
-  const [editing, setEditing] = useState(false);
-  const days = daysUntil(date);
-  let big = "—", sub = "Set your final exam date";
-  if (date && days !== null) {
-    if (days > 0) {
-      const [y, m, d] = date.split("-").map(Number), ms = new Date(y, m - 1, d) - new Date();
-      big = String(days); sub = `days remaining in semester · ${Math.floor(ms / 3600000) % 24}h ${Math.floor(ms / 60000) % 60}m`;
-    } else if (days === 0) { big = "Today"; sub = "Exam day. You've got this!"; }
-    else { big = "Done"; sub = "Semester complete"; }
-  }
+  const upcoming = sortExams(exams).filter(e => examAt(e) >= new Date() || daysUntil(e.date) === 0);
+  const next = upcoming[0], last = upcoming[upcoming.length - 1];
+  let big = "—", sub = "Add your final exams", line = "";
+  if (next) {
+    const d = daysUntil(next.date);
+    big = d === 0 ? "Today" : String(d);
+    sub = d === 0 ? `${next.name}. You've got this!` : `${d === 1 ? "day" : "days"} to ${next.name}`;
+    const semester = daysUntil(last.date);
+    line = upcoming.length > 1 ? `${upcoming.length} exams left · semester ends in ${semester} ${semester === 1 ? "day" : "days"}` : "Last exam of the semester";
+  } else if (exams.length) { big = "Done"; sub = "All exams finished. Semester complete!"; }
   return (
-    <div className="glass px-3 py-2 flex items-center gap-3 self-stretch" style={{ borderStyle: "dashed", borderColor: "var(--line)" }}>
+    <button type="button" onClick={onOpen} aria-label="Open the finals board" className="glass px-3 py-2 flex items-center gap-3 self-stretch text-left" style={{ borderStyle: "dashed", borderColor: "var(--line)", cursor: "pointer", color: "var(--ink)" }}>
       <div className="w-10 h-10 rounded-xl grid place-items-center flex-none" style={{ background: "var(--pink)", color: "#fff" }}><Icon name="Ticket" size={22} /></div>
       <div className="min-w-0">
-        <div className="display text-2xl font-semibold leading-none tabular-nums">{big}</div>
-        <div className="text-xs font-extrabold" style={{ color: "var(--ink-soft)" }}>{sub}</div>
+        <div className="flex items-baseline gap-2"><span className="display text-2xl font-semibold leading-none tabular-nums">{big}</span><span className="text-xs font-extrabold truncate" style={{ color: "var(--ink-soft)" }}>{sub}</span></div>
+        {line && <div className="text-xs font-bold" style={{ color: "var(--ink-soft)" }}>{line}</div>}
       </div>
-      {editing
-        ? <input id="exam-date" type="date" aria-label="Final exam date" className="input" style={{ flex: "0 1 150px", padding: "6px 8px" }} autoFocus value={date || ""} onChange={e => onChange(e.target.value)} onBlur={() => setEditing(false)} />
-        : <button className="w-8 h-8 rounded-full grid place-items-center flex-none hover:bg-black/5" aria-label="Edit final exam date" onClick={() => setEditing(true)} style={{ color: "var(--ink-soft)" }}><Icon name="Pencil" size={15} /></button>}
+      <Icon name="ChevronRight" size={16} style={{ color: "var(--ink-soft)" }} />
+    </button>
+  );
+}
+
+/* ---------- finals board: every class and its exam date ---------- */
+const CHIP = { hot: ["#ffe0e0", "#c0392b"], warm: ["#ffecd0", "#b8620f"], cool: ["#e2f6ea", "#2f8f64"], done: ["var(--card-2)", "var(--ink-soft)"], neutral: ["var(--card-2)", "var(--ink-soft)"] };
+function FinalsBoard({ exams, onChange, onClose }) {
+  useTick(60000);
+  const [name, setName] = useState(""), [date, setDate] = useState(""), [time, setTime] = useState("");
+  useEffect(() => { const h = e => e.key === "Escape" && onClose(); window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h); }, [onClose]);
+  const rows = [...exams].sort((a, b) => (a.date ? examAt(a) : 9e15) - (b.date ? examAt(b) : 9e15));
+  const add = e => {
+    e.preventDefault(); if (!name.trim() || !date) return;
+    onChange([...exams, { id: uid(), name: name.trim(), date, time, color: COLORS[exams.length % COLORS.length] }]);
+    setName(""); setDate(""); setTime("");
+  };
+  const edit = (id, k, v) => onChange(exams.map(x => x.id === id ? { ...x, [k]: v } : x));
+  return (
+    <div className="overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label="Finals board" style={{ width: "min(560px,100%)" }}>
+        <div className="px-5 pt-4 pb-3 flex items-center gap-3" style={{ background: "var(--pink)", color: "#fff" }}>
+          <div className="w-11 h-11 rounded-2xl bg-white/90 grid place-items-center flex-none" style={{ color: "#5b3a4a" }}><Icon name="Ticket" size={24} /></div>
+          <div className="min-w-0 flex-1"><h2 className="display text-xl font-semibold leading-tight">Finals Board</h2><div className="text-sm font-bold opacity-95">Every class, every exam date</div></div>
+          <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full bg-white/30 hover:bg-white/50 grid place-items-center flex-none"><Icon name="X" size={20} strokeWidth={3} /></button>
+        </div>
+        <form onSubmit={add} className="p-4 pb-2 flex flex-wrap gap-2 items-end">
+          <label className="flex flex-col gap-1 text-xs font-extrabold" style={{ flex: "2 1 160px" }} htmlFor="fx-name">Class<input id="fx-name" className="input" placeholder="Organic Chem final" value={name} onChange={e => setName(e.target.value)} maxLength={40} autoComplete="off" /></label>
+          <label className="flex flex-col gap-1 text-xs font-extrabold" style={{ flex: "1 1 140px" }} htmlFor="fx-date">Date<input id="fx-date" type="date" className="input" value={date} onChange={e => setDate(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 text-xs font-extrabold" style={{ flex: "0 1 110px" }} htmlFor="fx-time">Time<input id="fx-time" type="time" className="input" value={time} onChange={e => setTime(e.target.value)} /></label>
+          <button className="btn-primary" type="submit" disabled={!name.trim() || !date} style={{ opacity: !name.trim() || !date ? .55 : 1 }}><Icon name="Plus" size={18} strokeWidth={3} />Add</button>
+        </form>
+        <ul className="p-4 pt-2 flex flex-col gap-2 overflow-y-auto" style={{ listStyle: "none", margin: 0, minHeight: 100 }}>
+          {rows.length === 0 && <li className="text-center font-bold py-6" style={{ color: "var(--ink-soft)" }}>No exams yet. Add a class above and its countdown shows in the top banner.</li>}
+          {rows.map(x => {
+            const [lb, tone] = x.date ? countdownLabel(x) : ["Pick a date", "neutral"], [bg, fg] = CHIP[tone];
+            return (
+              <li key={x.id} className="task flex-wrap" style={{ opacity: tone === "done" ? .6 : 1 }}>
+                <span className="w-3 h-3 rounded-full flex-none" style={{ background: x.color }} />
+                <input aria-label="Class name" className="input" style={{ flex: "2 1 130px", padding: "6px 10px" }} value={x.name} onChange={e => edit(x.id, "name", e.target.value)} maxLength={40} />
+                <input aria-label={"Exam date for " + x.name} type="date" className="input" style={{ flex: "1 1 130px", padding: "6px 8px" }} value={x.date} onChange={e => edit(x.id, "date", e.target.value)} />
+                <input aria-label={"Exam time for " + x.name} type="time" className="input" style={{ flex: "0 1 100px", padding: "6px 8px" }} value={x.time || ""} onChange={e => edit(x.id, "time", e.target.value)} />
+                <span className="text-xs font-extrabold rounded-full px-2 py-1 whitespace-nowrap" style={{ background: bg, color: fg }}>{lb}</span>
+                <button onClick={() => onChange(exams.filter(y => y.id !== x.id))} aria-label={"Delete " + x.name} className="w-8 h-8 grid place-items-center rounded-full flex-none hover:bg-black/5" style={{ color: "var(--ink-soft)" }}><Icon name="Trash2" size={16} /></button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- backup & restore (data lives in this browser only) ---------- */
+function BackupModal({ onClose }) {
+  const [text, setText] = useState(""), [msg, setMsg] = useState("");
+  useEffect(() => { const h = e => e.key === "Escape" && onClose(); window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h); }, [onClose]);
+  const dump = () => { const o = {}; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("cozy-train-")) o[k] = localStorage.getItem(k); } } catch (e) {} return JSON.stringify({ app: "babby-cozy-express", saved: new Date().toISOString(), data: o }, null, 1); };
+  const download = () => { try { const url = URL.createObjectURL(new Blob([dump()], { type: "application/json" })); const a = document.createElement("a"); a.href = url; a.download = `babby-cozy-express-${dayStr()}.json`; document.body.appendChild(a); a.click(); a.remove(); setMsg("Backup file saved."); } catch (e) { setMsg("Download is blocked here. Use Copy instead."); } };
+  const copy = async () => { try { await navigator.clipboard.writeText(dump()); setMsg("Backup copied. Paste it somewhere safe."); } catch (e) { setText(dump()); setMsg("Copy blocked. The backup is in the box below, select it and copy."); } };
+  const restore = () => {
+    try {
+      const j = JSON.parse(text); const data = j.data || j; let n = 0;
+      Object.entries(data).forEach(([k, v]) => { if (k.startsWith("cozy-train-")) { localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v)); n++; } });
+      if (!n) throw new Error("none"); setMsg("Restored. Reloading…"); setTimeout(() => window.location.reload(), 600);
+    } catch (e) { setMsg("That doesn't look like a Babby Cozy Express backup."); }
+  };
+  const onFile = e => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => setText(String(r.result)); r.readAsText(f); };
+  return (
+    <div className="overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label="Backup and restore">
+        <div className="px-5 pt-4 pb-3 flex items-center gap-3" style={{ background: "var(--pink)", color: "#fff" }}>
+          <div className="min-w-0 flex-1"><h2 className="display text-xl font-semibold leading-tight">Backup &amp; restore</h2><div className="text-sm font-bold opacity-95">Your data is saved in this browser only</div></div>
+          <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full bg-white/30 hover:bg-white/50 grid place-items-center flex-none"><Icon name="X" size={20} strokeWidth={3} /></button>
+        </div>
+        <div className="p-4 flex flex-col gap-3 overflow-y-auto">
+          <p className="text-sm font-bold" style={{ color: "var(--ink-soft)" }}>Save a backup before clearing browser data, or to move your train to another device.</p>
+          <div className="flex gap-2 flex-wrap"><button className="btn-primary" onClick={download}><Icon name="Download" size={16} />Download backup</button><button className="pill" onClick={copy}><Icon name="Copy" size={16} />Copy backup</button></div>
+          <label className="text-sm font-extrabold" htmlFor="restore-text">Restore from a backup</label>
+          <textarea id="restore-text" className="input" rows={5} style={{ fontFamily: "monospace", fontSize: 12 }} placeholder="Paste a backup here, or choose a file" value={text} onChange={e => setText(e.target.value)} />
+          <div className="flex gap-2 flex-wrap items-center"><input id="restore-file" type="file" accept="application/json,.json" onChange={onFile} className="text-sm font-bold" aria-label="Backup file" /><button className="pill" onClick={restore} disabled={!text.trim()}><Icon name="Upload" size={16} />Restore</button></div>
+          {msg && <div className="text-sm font-extrabold" role="status" style={{ color: "var(--pink-deep)" }}>{msg}</div>}
+        </div>
+      </div>
     </div>
   );
 }
@@ -811,6 +1018,7 @@ function App() {
   const [stopped, setStopped] = useState(null);
   const [tod, setTod] = useState(() => store.get("cozy-train-tod", (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "sunset" : "day"));
   useEffect(() => store.set("cozy-train-tod", tod), [tod]);
+  const cycleTod = () => { const i = TODS.findIndex(t => t[0] === tod); const nx = TODS[(i + 1) % TODS.length]; setTod(nx[0]); sfx.pop(); popToast(nx[2], nx[1]); };
   const [themePref, setThemePref] = useState(() => store.get("cozy-train-theme", "auto"));
   const [themeMenu, setThemeMenu] = useState(false);
   const now = useMemo(() => new Date(), []);
@@ -828,7 +1036,10 @@ function App() {
 
   /* priority mode, focus timer, schedule, countdown */
   const [exam, setExam] = useState(() => store.get("cozy-train-exam", false));
-  const [examDate, setExamDate] = useState(() => store.get("cozy-train-examdate", ""));
+  const [exams, setExams] = useState(loadExams);
+  const [finalsOpen, setFinalsOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [focus, setFocus] = useState(loadFocus);
   const [timer, setTimer] = useState(() => store.get("cozy-train-timer", null));
   const [isSpittingSteam, setIsSpittingSteam] = useState(() => { const t = store.get("cozy-train-timer", null); return !!(t && t.endsAt > Date.now()); });
   const [hoot, setHoot] = useState(null);
@@ -836,7 +1047,8 @@ function App() {
   const [logItems, setLogItems] = useState(() => store.get("cozy-train-log", []));
   const [hop, setHop] = useState(() => LOST_ON_LOAD.map(l => ({ key: l.id + "-hop-" + uid(), id: l.id, slot: Math.max(0, l.slot) })));
   useEffect(() => store.set("cozy-train-exam", exam), [exam]);
-  useEffect(() => store.set("cozy-train-examdate", examDate), [examDate]);
+  useEffect(() => store.set("cozy-train-exams", exams), [exams]);
+  useEffect(() => store.set("cozy-train-focus", focus), [focus]);
   useEffect(() => store.set("cozy-train-timer", timer), [timer]);
   useEffect(() => store.set("cozy-train-log", logItems), [logItems]);
 
@@ -844,6 +1056,7 @@ function App() {
   const engineRef = useRef(null), carRefs = useRef([]);
   const live = useRef({});
   live.current = { speed, muted, openId, exam, acad: new Set(stations.filter(isAcademic).map(s => s.id)) };
+  MUTED = muted;
   const play = fn => { if (!live.current.muted) fn(); };
 
   useEffect(() => store.set("cozy-train-v1", stations), [stations]);
@@ -904,12 +1117,23 @@ function App() {
   }, [len]);
 
   /* actions */
-  const popToast = msg => { setToast(msg); clearTimeout(popToast.t); popToast.t = setTimeout(() => setToast(null), 2400); };
+  const popToast = (msg, ic) => { setToast({ msg, ic: ic || "Sparkles" }); clearTimeout(popToast.t); popToast.t = setTimeout(() => setToast(null), 2600); };
   const burst = (el, big) => {
     const s = stageRef.current.getBoundingClientRect();
     const r = el ? el.getBoundingClientRect() : { left: s.left + s.width / 2, top: s.top + s.height / 2, width: 0, height: 0 };
     const id = uid(); setBursts(b => [...b, { id, big, x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2 }]);
     setTimeout(() => setBursts(b => b.filter(x => x.id !== id)), 1500);
+  };
+  const [bubble, setBubble] = useState(null);
+  const [tooting, setTooting] = useState(false);
+  const say = (el, text) => {
+    const s = stageRef.current.getBoundingClientRect(), r = el.getBoundingClientRect(), id = uid();
+    setBubble({ id, text, x: r.left - s.left + r.width / 2, y: r.top - s.top }); clearTimeout(say.t); say.t = setTimeout(() => setBubble(null), 2200);
+  };
+  const tootEngine = () => {
+    play(sfx.toot); setTooting(true); setTimeout(() => setTooting(false), 1600);
+    const left = all.length - doneAll, lines = ["Choo choo!", "Toot toot!", "All aboard!", left === 0 ? "Everything's done! Amazing!" : `${left} ${left === 1 ? "task" : "tasks"} to go. You've got this!`, "Steam power!"];
+    say(engineRef.current, lines[Math.floor(Math.random() * lines.length)]);
   };
   const patch = (id, fn) => setStations(ss => ss.map(s => s.id === id ? fn(s) : s));
   const open = id => { play(sfx.open); setOpenId(id); };
@@ -919,28 +1143,48 @@ function App() {
     const allDone = nowDone && st.tasks.every(x => x.id === tid || x.done);
     patch(sid, s => ({ ...s, tasks: s.tasks.map(x => x.id === tid ? { ...x, done: nowDone } : x) }));
     if (!nowDone) return play(sfx.uncheck);
-    if (allDone) { play(sfx.win); burst(null, true); popToast(`${st.name} is all done! ★`); }
+    if (allDone) { play(sfx.win); burst(null, true); popToast(`${st.name} is all done!`, "Star"); }
     else { play(sfx.check); burst(el, false); }
   };
   const addTask = (sid, text, due) => { play(sfx.add); patch(sid, s => ({ ...s, tasks: [...s.tasks, T(text, false, due || "")] })); };
   const delTask = (sid, tid) => { play(sfx.del); patch(sid, s => ({ ...s, tasks: s.tasks.filter(x => x.id !== tid) })); };
   const rename = (sid, name) => patch(sid, s => ({ ...s, name }));
-  const removeStation = sid => { if (timer && timer.sid === sid) stopTimer(); play(sfx.del); setOpenId(null); setStations(ss => ss.filter(s => s.id !== sid)); popToast("Station removed"); };
+  const removeStation = sid => { if (timer && timer.sid === sid) stopTimer(); play(sfx.del); setOpenId(null); setStations(ss => ss.filter(s => s.id !== sid)); popToast("Station removed", "Trash2"); };
   const createStation = ({ name, icon, color, kind, academic }) => {
     play(sfx.add); setStations(ss => [...ss, { id: uid(), kind, name, icon, color, academic: !!academic, daily: false, streak: { ...EMPTY_STREAK }, tasks: [] }]); setAdding(false); popToast(`${name} is on the track!`);
   };
 
+  const badgesFor = s => {
+    const out = [], od = s.tasks.filter(t => !t.done && t.due && t.due < todayStr()).length;
+    if (s.streak && s.streak.count > 0) out.push({ ic: "Flame", color: "#ff8a3d", n: s.streak.count, tip: `${s.streak.count}-day streak` });
+    if (timer && timer.sid === s.id) out.push({ ic: "Timer", color: "#7c6bd6", pulse: true, tip: "Boiler timer running" });
+    if (od > 0) out.push({ ic: "AlertTriangle", color: "#e05555", n: od, tip: `${od} overdue` });
+    return out;
+  };
   const flag = (sid, key, val) => patch(sid, s => ({ ...s, [key]: val }));
-  const startTimer = sid => { play(sfx.open); setTimer({ sid, endsAt: Date.now() + FOCUS_SECONDS * 1000 }); setIsSpittingSteam(true); setHoot(null); popToast("Boiler fired up. 25 minutes of focus!"); };
+  const startTimer = sid => { try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} play(sfx.open); setTimer({ sid, endsAt: Date.now() + FOCUS_SECONDS * 1000 }); setIsSpittingSteam(true); setHoot(null); popToast("Boiler fired up. 25 minutes of focus!", "Timer"); };
   function stopTimer() { setTimer(null); setIsSpittingSteam(false); }
   useEffect(() => {
     if (!timer) return;
-    const finish = () => { setTimer(null); setIsSpittingSteam(false); setHoot({ sid: timer.sid }); if (!live.current.muted) sfx.hoot(); try { burst(null, true); } catch (e) {} };
+    const finish = () => { setTimer(null); setIsSpittingSteam(false); setHoot({ sid: timer.sid });
+      setFocus(f => ({ date: dayStr(), sessions: (f.date === dayStr() ? f.sessions : 0) + 1 }));
+      try { if (window.Notification && Notification.permission === "granted") new Notification("HOOT HOOT! Focus time over!", { body: "25 minutes of steady steam. Time for a stretch." }); } catch (e) {} if (!live.current.muted) sfx.hoot(); try { burst(null, true); } catch (e) {} };
     const id = setTimeout(finish, Math.max(0, timer.endsAt - Date.now()));
     return () => clearTimeout(id);
   }, [timer]);
 
   const fullRef = useRef(null);
+  useEffect(() => {   /* show the countdown in the browser tab while the boiler runs */
+    const base = "Babby Cozy Express";
+    if (!timer) { document.title = base; return; }
+    const upd = () => { const s = Math.max(0, Math.ceil((timer.endsAt - Date.now()) / 1000)); document.title = `${fmtClock(s)} · ${base}`; };
+    upd(); const id = setInterval(upd, 1000); return () => { clearInterval(id); document.title = base; };
+  }, [timer]);
+  useEffect(() => {   /* once per visit: nudge toward Exam Week when finals are close */
+    const next = sortExams(exams).find(e => examAt(e) >= new Date());
+    const dd = next ? daysUntil(next.date) : null;
+    if (dd !== null && dd <= 7 && !exam && !LOST_ON_LOAD.length) setTimeout(() => popToast(`${next.name} is ${dd === 0 ? "today" : dd === 1 ? "tomorrow" : `in ${dd} days`}. Try Exam Week!`, "Flame"), 900);
+  }, []);
   /* habit streaks: a fully ticked station earns today's +1; un-ticking takes it back */
   useEffect(() => {
     const today = dayStr(), yest = dayStr(-1), riders = stations.filter(s => s.streak && s.streak.count > 0).map(s => s.id);
@@ -957,11 +1201,11 @@ function App() {
     });
     if (!changed) return;
     setStations(next);
-    if (won.length) { play(sfx.board); popToast(`${won[0].name}: ${next.find(s => s.id === won[0].id).streak.count}-day streak! A passenger boards.`); }
+    if (won.length) { play(sfx.board); popToast(`${won[0].name}: ${next.find(s => s.id === won[0].id).streak.count}-day streak! A passenger boards.`, "Flame"); }
     if (left.length) { const hs = left.map(l => ({ key: l.id + "-hop-" + uid(), ...l })); setHop(h => [...h, ...hs]); }
   }, [stations]);
   useEffect(() => { if (!hop.length) return; const id = setTimeout(() => setHop([]), 1500); return () => clearTimeout(id); }, [hop]);
-  useEffect(() => { if (LOST_ON_LOAD.length) { popToast(`${LOST_ON_LOAD[0].name}: streak ended, a passenger hopped off.`); LOST_ON_LOAD = []; } }, []);
+  useEffect(() => { if (LOST_ON_LOAD.length) { popToast(`${LOST_ON_LOAD[0].name}: streak ended, a passenger hopped off.`, "HeartCrack"); LOST_ON_LOAD = []; } }, []);
 
   /* passengers: one rider per running streak, two seats per car */
   const riders = stations.filter(s => s.streak && s.streak.count > 0).slice(0, 8).map((s, slot) => { const [emoji, bg] = avatarFor(stations, s.id); return { key: s.id, emoji, bg, slot, title: `${s.name}: ${s.streak.count}-day streak` }; });
@@ -982,22 +1226,29 @@ function App() {
       <header className="flex flex-wrap items-stretch gap-2">
         <div className="glass px-4 py-3 min-w-0 flex-1" style={{ flexBasis: 260 }}>
           <div className="flex items-baseline gap-3 flex-wrap">
-            <h1 className="display text-2xl font-bold leading-none"> Babby Cozy Express</h1>
-            <span className="text-sm font-extrabold flex items-center gap-1" style={{ color: "var(--ink-soft)" }}><Icon name="CalendarDays" size={14} />{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · {THEMES[autoSeason].label}</span>
-            <span className="text-sm font-extrabold" style={{ color: "var(--ink-soft)" }}>{doneAll}/{all.length} tasks · {stations.filter(isDone).length}/{stations.length} stops{overdue > 0 ? ` · ${overdue} overdue` : ""}</span>
+            <h1 className="display text-2xl font-bold leading-none">Babby Cozy Express</h1>
+            <span className="text-sm font-extrabold flex items-center gap-1" style={{ color: "var(--ink-soft)" }}><Icon name={THEMES[autoSeason].icon} size={14} />{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · {THEMES[autoSeason].label}</span>
+            <span className="flex flex-wrap gap-1.5">
+              <span className="chip" title="Tasks done"><Icon name="CheckCircle2" size={13} style={{ color: "#2f9e72" }} />{doneAll}/{all.length}</span>
+              <span className="chip" title="Stops finished"><Icon name="Flag" size={13} style={{ color: "var(--pink-deep)" }} />{stations.filter(isDone).length}/{stations.length}</span>
+              <span className="chip" title="Passengers riding (streak days across all stations)"><Icon name="Flame" size={13} style={{ color: "#ff8a3d" }} />{stations.reduce((n, s) => n + ((s.streak && s.streak.count) || 0), 0)}</span>
+              <span className="chip" title="Focus sessions today"><Icon name="Timer" size={13} style={{ color: "#7c6bd6" }} />{focus.sessions}</span>
+              {overdue > 0 && <span className="chip" title="Overdue tasks" style={{ background: "#ffe0e0", color: "#c0392b", borderColor: "#f5b5b5" }}><Icon name="AlertTriangle" size={13} />{overdue} overdue</span>}
+            </span>
           </div>
           <div className="progress mt-2"><i style={{ width: (all.length ? doneAll / all.length * 100 : 0) + "%" }} /></div>
         </div>
-        <TicketCounter date={examDate} onChange={setExamDate} />
+        <TicketCounter exams={exams} onOpen={() => setFinalsOpen(true)} />
         <div className="glass seg self-center" role="group" aria-label="Time of day">
-          {[["day", "Sun", "Day"], ["sunset", "Sunset", "Sunset"], ["night", "Moon", "Night"]].map(([k, ic, lb]) =>
+          {TODS.map(([k, ic, lb]) =>
             <button key={k} aria-pressed={tod === k} aria-label={lb} title={lb} onClick={() => setTod(k)}><Icon name={ic} size={18} /></button>)}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button className="pill glass" id="exam-week" aria-pressed={exam} aria-label="Exam Week Express: only schoolwork stops" onClick={() => { setExam(x => !x); play(sfx.toot); popToast(!exam ? "Exam Week Express: only schoolwork stops are lit." : "Back to the regular route."); }}
+          <button className="pill glass" id="exam-week" aria-pressed={exam} aria-label="Exam Week Express: only schoolwork stops" onClick={() => { setExam(x => !x); play(sfx.toot); popToast(!exam ? "Exam Week Express: only schoolwork stops are lit." : "Back to the regular route.", exam ? "Train" : "Flame"); }}
             style={exam ? { background: "linear-gradient(135deg,#ff6a3d,#ff3d5a)", color: "#fff", borderColor: "#ffb48a" } : undefined}><Icon name="Flame" size={18} />Exam Week</button>
           <button className="pill glass" id="speed" onClick={() => setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length])} aria-label={`Train speed ${speed}x. Change speed`}><Icon name="Gauge" size={18} />{speed}x</button>
           <button className="pill glass" id="mute" onClick={() => setMuted(m => !m)} aria-pressed={muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}><Icon name={muted ? "VolumeX" : "Volume2"} size={18} /></button>
+          <button className="pill glass" id="backup" aria-label="Backup and restore" title="Backup and restore" onClick={() => setBackupOpen(true)}><Icon name="Download" size={18} /></button>
           <div className="relative" data-theme-menu>
             <button className="pill glass" id="theme-btn" aria-haspopup="menu" aria-expanded={themeMenu} aria-label="Change seasonal theme" onClick={() => setThemeMenu(o => !o)}><Icon name={th.icon} size={18} />{th.label}<Icon name="ChevronDown" size={14} /></button>
             {themeMenu && (
@@ -1019,20 +1270,22 @@ function App() {
           <Track th={th} exam={exam} />
           <Particles kind={th.particle} th={th} key={season} />
           <path ref={pathRef} d={PATH_D} fill="none" stroke="none" />
-          {spots.map((sp, i) => stations[i] && <Station key={sp.id} st={stations[i]} x={sp.x} y={sp.y} onOpen={open} active={stopped === sp.id} dim={exam && !isAcademic(stations[i])} />)}
+          {spots.map((sp, i) => stations[i] && <Station key={sp.id} st={stations[i]} x={sp.x} y={sp.y} onOpen={open} active={stopped === sp.id} dim={exam && !isAcademic(stations[i])} badges={badgesFor(stations[i])} />)}
           <g style={{ pointerEvents: "none" }}>
             {Array.from({ length: nCars }, (_, k) => nCars - 1 - k).map(i =>
-              <Car key={i} refEl={el => { carRefs.current[i] = el; }} color={CAR_COLORS[i % CAR_COLORS.length]} paused={!!stopped} riders={carRiders(i)} />)}
-            <Engine refEl={engineRef} paused={!!stopped} steam={isSpittingSteam} />
+              <Car key={i} refEl={el => { carRefs.current[i] = el; }} color={CAR_COLORS[i % CAR_COLORS.length]} paused={!!stopped} riders={carRiders(i)} onRider={(rd, el) => say(el, rd.title)} />)}
+            <Engine refEl={engineRef} paused={!!stopped} steam={isSpittingSteam || tooting} onClick={tootEngine} />
           </g>
         </svg>
         {stopped && stations.find(s => s.id === stopped) && !openId && (
           <div className="toast" style={{ bottom: "auto", top: 14 }} aria-live="polite">
-            Stopped at {stations.find(s => s.id === stopped).name} · tap it to open
+            <Icon name="MapPin" size={16} style={{ display: "inline", marginRight: 6, verticalAlign: "-3px", color: "var(--pink-deep)" }} />Stopped at {stations.find(s => s.id === stopped).name} · tap it to open
           </div>
         )}
-        {toast && <div className="toast" role="status">{toast}</div>}
+        {toast && <div className="toast" role="status"><Icon name={toast.ic} size={16} style={{ display: "inline", marginRight: 6, verticalAlign: "-3px", color: "var(--pink-deep)" }} />{toast.msg}</div>}
         <div className="tod" />
+        <SkyFx tod={tod} onCycle={cycleTod} />
+        {bubble && <div className="bubble" key={bubble.id} style={{ left: bubble.x, top: bubble.y }}>{bubble.text}</div>}
         <Confetti bursts={bursts} />
         {timer && <TimerPill timer={timer} name={timerStation ? timerStation.name : ""} onStop={stopTimer} />}
         <button className="glass absolute flex flex-col items-center gap-1 px-2 py-3 font-extrabold text-xs" aria-label="Open conductor's log" style={{ right: 0, top: "38%", zIndex: 25, borderRadius: "18px 0 0 18px", borderRight: 0, color: "var(--ink)" }} onClick={() => setLogOpen(true)}>
@@ -1041,8 +1294,10 @@ function App() {
         <ConductorLog open={logOpen} onClose={() => setLogOpen(false)} items={logItems}
           onAdd={(time, title) => { play(sfx.add); setLogItems(xs => [...xs, { id: uid(), time, title, doneOn: "" }]); }}
           onToggle={id => { play(sfx.check); logToggle(id); }} onDelete={id => { play(sfx.del); setLogItems(xs => xs.filter(i => i.id !== id)); }} />
+        {finalsOpen && <FinalsBoard exams={exams} onChange={setExams} onClose={() => setFinalsOpen(false)} />}
+        {backupOpen && <BackupModal onClose={() => setBackupOpen(false)} />}
         {hoot && <HootAlert name={(stations.find(s => s.id === hoot.sid) || {}).name} onClose={() => setHoot(null)} onAgain={() => startTimer(hoot.sid)} />}
-        {openSt && <ChecklistModal st={openSt} onClose={() => setOpenId(null)} onToggle={toggle} onAdd={addTask} onDelete={delTask} onRemoveStation={removeStation} onRename={rename} timer={timer} timerStation={timerStation} onStartTimer={startTimer} onStopTimer={stopTimer} onFlag={flag} />}
+        {openSt && <ChecklistModal st={openSt} onClose={() => setOpenId(null)} onToggle={toggle} onAdd={addTask} onDelete={delTask} onRemoveStation={removeStation} onRename={rename} timer={timer} timerStation={timerStation} onStartTimer={startTimer} onStopTimer={stopTimer} onFlag={flag} focus={focus} />}
         {adding && <AddStationModal onClose={() => setAdding(false)} onCreate={createStation} />}
       </main>
 
